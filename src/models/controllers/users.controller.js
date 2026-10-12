@@ -1,48 +1,51 @@
 const userService = require('../services/user.service');
 
-const getAll = (req, res) => {
-  return res.json(userService.getAll());
+const getAll = async (req, res) => {
+  const userAll = await userService.getAll();
+
+  return res.json(userAll.map((uAll) => userService.normalizeUser(uAll)));
 };
 
-const getById = (req, res) => {
+const getById = async (req, res) => {
   const { id } = req.params;
-  const user = userService.getById(id);
+  const user = await userService.getById(+id);
 
   if (!user) {
     return res.status(404).send({ message: 'Not found' });
   }
 
-  return res.json(user);
+  return res.json(userService.normalizeUser(user));
 };
 
-const create = (req, res) => {
+const create = async (req, res) => {
   const { name } = req.body;
 
   if (!name) {
     return res.status(400).send({ message: 'Bad request' });
   }
 
-  const newUser = userService.create(name);
+  const userCreate = await userService.create(name);
 
-  res.status(201).json(newUser);
+  return res.status(201).json(userService.normalizeUser(userCreate));
 };
 
-const upDate = (req, res) => {
+const upDate = async (req, res) => {
   const { id } = req.params;
 
-  const userUpdate = userService.upDate({ id, ...req.body });
+  const userUpdate = await userService.upDate({ id, ...req.body });
 
   if (!userUpdate) {
     return res.status(404).send({ message: 'Not found' });
   }
 
   Object.assign(userUpdate, req.body);
-  res.json(userUpdate);
+
+  return res.json(userService.normalizeUser(userUpdate));
 };
 
-const deleteById = (req, res) => {
+const deleteById = async (req, res) => {
   const { id } = req.params;
-  const deleteUser = userService.deleteById(id);
+  const deleteUser = await userService.deleteById(id);
 
   if (!deleteUser) {
     return res.status(404).send({ message: 'Not found' });

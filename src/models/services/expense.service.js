@@ -1,19 +1,74 @@
-const { Client } = require('pg');
+const { sequelize } = require('../../db');
+const { DataTypes } = require('sequelize');
 
-let expenses = [];
+const expenses = [];
 
-const client = new Client({
-  host: 'localhost',
-  user: 'postgres',
-  password: '123123',
-  database: 'postgres',
-});
+const Expense = sequelize.define(
+  'Expense',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    title: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+    },
+    spentAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+    },
+    category: {
+      type: DataTypes.STRING,
+    },
+    note: {
+      type: DataTypes.TEXT,
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      // references: {
+      //   model: 'users',
+      //   key: 'id',
+      // },
+    },
+  },
+  {
+    tableName: 'expenses',
+    updatedAt: false,
+    createdAt: false,
+  },
+);
 
-const connectDB = async () => {
-  await client.connect();
+const normalizeExpense = ({
+  id,
+  title,
+  amount,
+  spentAt,
+  category,
+  note,
+  userId,
+}) => {
+  return {
+    id,
+    title,
+    amount,
+    spentAt,
+    category,
+    note,
+    userId,
+  };
 };
 
-const getAll = (userId, categories, from, to) => {
+const getAll = async (userId, categories, from, to) => {
+  // const result = await Expense.findAll();
+
+  // return result;
   let exp = expenses;
 
   if (userId) {
@@ -39,8 +94,10 @@ const getAll = (userId, categories, from, to) => {
   return exp;
 };
 
-const getById = (id) => {
-  return expenses.find((expens) => expens.id === +id) || null;
+const getById = async (id) => {
+  const resultById = await Expense.findByPk(id);
+
+  return resultById;
 };
 
 const create = ({ id, userId, spentAt, title, amount, category, note }) => {
@@ -101,9 +158,9 @@ const deleteById = (id) => {
   return exp;
 };
 
-const resetExpenses = () => {
-  expenses = [];
-};
+// const resetExpenses = () => {
+//   expenses = [];
+// };
 
 module.exports = {
   getAll,
@@ -111,6 +168,6 @@ module.exports = {
   create,
   upDate,
   deleteById,
-  resetExpenses,
-  connectDB,
+  // resetExpenses,
+  normalizeExpense,
 };

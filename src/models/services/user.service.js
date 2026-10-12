@@ -1,58 +1,69 @@
-const { Client } = require('pg');
+const { sequelize } = require('../../db');
+const { DataTypes } = require('sequelize');
 
-// let users = [];
+const User = sequelize.define(
+  'User',
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
+    name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      field: 'created_At',
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+    },
+  },
+  {
+    tableName: 'users',
+    updatedAt: false,
+  },
+);
 
-const client = new Client({
-  host: 'localhost',
-  user: 'postgres',
-  password: '123123',
-  database: 'postgres',
-});
-
-const connectDB = async () => {
-  await client.connect();
+const normalizeUser = ({ id, name }) => {
+  return {
+    id,
+    name,
+  };
 };
 
 const getAll = async () => {
-  const result = await client.query(`SELECT * FROM  users`);
+  const userAll = await User.findAll({
+    order: [['id', 'ASC']],
+  });
 
-  return result.rows;
+  return userAll;
 };
 
 const getById = async (id) => {
-  const result = await client.query(`SELECT * FROM users WHERE id = $1`, [id]);
+  const userById = await User.findByPk(+id);
 
-  return result.rows[0] || null;
+  return userById;
 };
 
 const create = async (name) => {
-  const id = Date.now();
+  const userCreate = await User.create({ name });
 
-  await client.query(`INSERT INTO users (id, name) VALUES ($1, $2)`, [
-    id,
-    name,
-  ]);
-
-  return getById(id);
+  return userCreate;
 };
 
 const upDate = async ({ id, name }) => {
-  await client.query(
-    `UPDATE users SET name = $1,
-     WHERE id = $2`,
-    [name, id],
-  );
+  const userUpDate = await User.update({ id, name }, { where: { id } });
 
-  return getById(id);
+  return userUpDate;
 };
 
 const deleteById = async (id) => {
-  await client.query(`DELETE FROM  users WHERE id = $1`, [id]);
-};
+  const userDelete = await User.destroy({ where: { id } });
 
-// const resetUser = () => {
-//   users = [];
-// };
+  return userDelete;
+};
 
 module.exports = {
   getAll,
@@ -60,6 +71,5 @@ module.exports = {
   create,
   upDate,
   deleteById,
-  // resetUser,
-  connectDB,
+  normalizeUser,
 };
