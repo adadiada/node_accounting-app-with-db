@@ -6,38 +6,37 @@ const getAll = async (req, res) => {
 
   const expenses = await expensesService.getAll(userId, categories, from, to);
 
-  res.status(200).json(expenses);
+  res.status(200).json(expenses.map(expensesService.normalizeExpense));
 };
 
-const getById = (req, res) => {
+const getById = async (req, res) => {
   const { id } = req.params;
-  const expense = expensesService.getById(id);
+  const expense = await expensesService.getById(+id);
 
   if (!expense) {
     return res.status(404).send({ message: 'Not found' });
   }
-  res.send(expense);
+  res.send(expensesService.normalizeExpense(expense));
 };
 
 const create = async (req, res) => {
   const { userId, spentAt, title, amount, category, note } = req.body;
 
-  if (!userId || !spentAt || !title || !amount || !category || !note) {
+  if (!userId || !spentAt || !title || !amount) {
     return res.status(400).send({ message: 'Bad request' });
   }
-  // Перевірка чи існує користувач
 
-  const user = userService.getById(userId);
+  const user = await userService.getById(userId);
 
   if (!user) {
     return res.status(400).send({ message: 'Bad request' });
   }
 
-  const ex = expensesService.create({
-    userId,
+  const ex = await expensesService.create({
+    userId: +userId,
     spentAt,
     title,
-    amount,
+    amount: +amount,
     category,
     note,
   });
@@ -46,21 +45,21 @@ const create = async (req, res) => {
     return res.status(404).send({ message: 'Not found' });
   }
 
-  res.status(201).json(ex);
+  res.status(201).json(expensesService.normalizeExpense(ex));
 };
 
-const deleteById = (req, res) => {
+const deleteById = async (req, res) => {
   const { id } = req.params;
-  const removed = expensesService.deleteById(id);
+  const deleteExpense = await expensesService.deleteById(+id);
 
-  if (!removed) {
+  if (!deleteExpense) {
     return res.status(404).send({ message: 'Not found' });
   }
 
   return res.status(204).send();
 };
 
-const upDate = (req, res) => {
+const upDate = async (req, res) => {
   const { id } = req.params;
   const { spentAt, title, amount, category, note } = req.body;
 
@@ -68,7 +67,7 @@ const upDate = (req, res) => {
     return res.status(400).send('Bad Request');
   }
 
-  const expensUpdate = expensesService.getById(id);
+  const expensUpdate = await expensesService.getById(+id);
 
   if (!expensUpdate) {
     return res.status(404).send({ message: 'Not found' });
@@ -78,11 +77,11 @@ const upDate = (req, res) => {
     return res.status(400).send('Bad Request');
   }
 
-  const expense = expensesService.upDate({
-    id,
+  const expense = await expensesService.upDate({
+    id: +id,
     spentAt,
     title,
-    amount,
+    amount: +amount,
     category,
     note,
   });
@@ -93,7 +92,7 @@ const upDate = (req, res) => {
     return;
   }
 
-  res.status(200).json(expense);
+  res.status(200).json(expensesService.normalizeExpense(expense));
 };
 
 const expensesController = {

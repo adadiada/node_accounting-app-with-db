@@ -1,34 +1,8 @@
-const { sequelize } = require('../../db');
-const { DataTypes } = require('sequelize');
-
-const User = sequelize.define(
-  'User',
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      field: 'created_At',
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-  },
-  {
-    tableName: 'users',
-    updatedAt: false,
-  },
-);
+const { User } = require('../User.model');
 
 const normalizeUser = ({ id, name }) => {
   return {
-    id,
+    id: +id,
     name,
   };
 };
@@ -54,9 +28,9 @@ const create = async (name) => {
 };
 
 const upDate = async ({ id, name }) => {
-  const userUpDate = await User.update({ id, name }, { where: { id } });
+  await User.update({ id, name }, { where: { id } });
 
-  return userUpDate;
+  return { id: +id, name };
 };
 
 const deleteById = async (id) => {

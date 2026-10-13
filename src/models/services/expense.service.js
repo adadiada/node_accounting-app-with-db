@@ -1,49 +1,6 @@
-const { sequelize } = require('../../db');
-const { DataTypes } = require('sequelize');
-
-const expenses = [];
-
-const Expense = sequelize.define(
-  'Expense',
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    title: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    amount: {
-      type: DataTypes.DECIMAL(10, 2),
-      allowNull: false,
-    },
-    spentAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    category: {
-      type: DataTypes.STRING,
-    },
-    note: {
-      type: DataTypes.TEXT,
-    },
-    userId: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      // references: {
-      //   model: 'users',
-      //   key: 'id',
-      // },
-    },
-  },
-  {
-    tableName: 'expenses',
-    updatedAt: false,
-    createdAt: false,
-  },
-);
+const { Op } = require('sequelize');
+const { Expense } = require('../Expense.model');
+const { User } = require('../User.model');
 
 const normalizeExpense = ({
   id,
@@ -55,112 +12,113 @@ const normalizeExpense = ({
   userId,
 }) => {
   return {
-    id,
+    id: +id,
     title,
-    amount,
+    amount: +amount,
     spentAt,
     category,
     note,
-    userId,
+    userId: +userId,
   };
 };
 
 const getAll = async (userId, categories, from, to) => {
-  // const result = await Expense.findAll();
-
-  // return result;
-  let exp = expenses;
+  const where = {};
 
   if (userId) {
-    exp = exp.filter((item) => item.userId === +userId);
+    where.userId = +userId;
   }
 
   if (categories) {
-    exp = exp.filter((item) => categories.includes(item.category));
+    where.category = categories;
   }
 
-  if (from) {
-    const afterDate = new Date(from);
+  if (from || to) {
+    where.spentAt = {};
 
-    exp = exp.filter((item) => new Date(item.spentAt) > afterDate);
+    if (from) {
+      where.spentAt[Op.gte] = from;
+    }
+
+    if (to) {
+      where.spentAt[Op.lte] = to;
+    }
   }
 
-  if (to) {
-    const beforeDate = new Date(to);
-
-    exp = exp.filter((item) => new Date(item.spentAt) < beforeDate);
-  }
-
-  return exp;
+  return Expense.findAll({ where });
 };
 
 const getById = async (id) => {
-  const resultById = await Expense.findByPk(id);
+  const expensById = await Expense.findByPk(+id);
 
-  return resultById;
+  return expensById;
 };
 
-const create = ({ id, userId, spentAt, title, amount, category, note }) => {
-  const ex = {
-    id: Date.now(),
-    userId: +userId,
+const create = async (data) => {
+  const { spentAt, title, amount, userId, category, note } = data;
+
+  //  Перевірка обов'язкових полів
+  if (!spentAt || !title || !amount || !userId) {
+    throw new Error('Missing required fields');
+  }
+
+  // Перевірка існування користувача
+  const user = await User.findByPk(userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // 3. Створення витрати
+  return Expense.create({
     spentAt,
     title,
     amount: +amount,
+    userId: +userId,
     category,
     note,
-  };
-
-  expenses.push(ex);
-
-  return ex;
+  });
 };
 
-const upDate = ({ id, spentAt, title, amount, category, note }) => {
-  const expensUpdate = expenses.find((e) => e.id === +id);
-
-  if (!expensUpdate) {
-    return null;
-  }
+const upDate = async ({ id, spentAt, title, amount, category, note }) => {
+  const updateData = {};
 
   if (spentAt !== undefined) {
-    expensUpdate.spentAt = spentAt;
+    updateData.spentAt = spentAt;
   }
 
   if (title !== undefined) {
-    expensUpdate.title = title;
+    updateData.title = title;
   }
 
   if (amount !== undefined) {
-    expensUpdate.amount = amount;
+    updateData.amount = +amount;
   }
 
   if (category !== undefined) {
-    expensUpdate.category = category;
+    updateData.category = category;
   }
 
   if (note !== undefined) {
-    expensUpdate.note = note;
+    updateData.note = note;
   }
 
-  return expensUpdate;
+  await Expense.update(updateData, { where: { id } });
+
+  return Expense.findByPk(+id);
 };
 
-const deleteById = (id) => {
-  const index = expenses.findIndex((e) => e.id === +id);
+const deleteById = async (id) => {
+  const expense = await Expense.findByPk(id);
 
-  if (index === -1) {
+  if (!expense) {
     return null;
   }
 
-  const [exp] = expenses.splice(index, 1);
+  await Expense.destroy({ where: { id } });
 
-  return exp;
+  return expense;
 };
-
-// const resetExpenses = () => {
-//   expenses = [];
-// };
 
 module.exports = {
   getAll,
@@ -168,6 +126,5 @@ module.exports = {
   create,
   upDate,
   deleteById,
-  // resetExpenses,
   normalizeExpense,
 };

@@ -1,5 +1,7 @@
-// const { User } = require('./models/services/user.service');
+const { User } = require('./models/User.model');
+const { Expense } = require('./models/Expense.model');
 
-// User.sync({ force: true });
+User.sync({ force: true });
+Expense.sync({ force: true });
 
-// module.exports = { User };
+module.exports = { User, Expense };
